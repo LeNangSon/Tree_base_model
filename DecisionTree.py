@@ -23,19 +23,19 @@ def feature_index_split(X, y, feature_subset, indices):
     right_indices = None
 
     """Return feature index, threshold we choose to split data"""
-    min_impurity = 1e9
+    min_impurity = np.inf
 
-    # O(nm) n: cardinality of feature_subset, m: average number of unique values in each feature
     # One vs rest 
     for feature in feature_subset:
-        for threshold in np.unique(X[:, feature]):
-            tmp_left_indices = np.where(X[:, feature] == threshold)[0]
-            tmp_right_indices = np.where(X[:, feature] != threshold)[0]
-            left_node_impurity = compute_entropy(y, left_indices)
-            right_node_impurity = compute_entropy(y, right_indices)
-            sum_impurity = left_node_impurity + right_node_impurity
-            if (sum_impurity < min_impurity):
-                min_impurity = sum_impurity
+        for threshold in np.unique(X[indices, feature]):
+            mask = (X[indices, feature] == threshold)
+            tmp_left_indices = indices[mask]
+            tmp_right_indices = indices[~mask]
+            left_node_impurity = compute_entropy(y, tmp_left_indices)
+            right_node_impurity = compute_entropy(y, tmp_right_indices)
+            weighted_sum_impurity = (len(tmp_left_indices) * left_node_impurity + len(tmp_right_indices) * right_node_impurity) / len(indices)
+            if (weighted_sum_impurity < min_impurity):
+                min_impurity = weighted_sum_impurity
                 feature_index = feature
                 threshold_split = threshold
                 left_indices = tmp_left_indices
