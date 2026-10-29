@@ -16,21 +16,37 @@ def compute_value(y, indices):
     label, counts = np.unique(a, return_counts=True)
     return label[np.argmax(counts)]
 
-def threshold_split(X, y, feature_index, indices):
-    """Return threshold (or label for classification prob)"""
-
 def feature_index_split(X, y, feature_subset, indices):
     feature_index = None
-    threshold = None
+    threshold_split = None
     left_indices = None
     right_indices = None
 
     """Return feature index, threshold we choose to split data"""
-    ...
-    return feature_index, threshold, left_indices, right_indices
+    min_impurity = 1e9
+
+    # O(nm) n: cardinality of feature_subset, m: average number of unique values in each feature
+    # One vs rest 
+    for feature in feature_subset:
+        for threshold in np.unique(X[:, feature]):
+            tmp_left_indices = np.where(X[:, feature] == threshold)[0]
+            tmp_right_indices = np.where(X[:, feature] != threshold)[0]
+            left_node_impurity = compute_entropy(y, left_indices)
+            right_node_impurity = compute_entropy(y, right_indices)
+            sum_impurity = left_node_impurity + right_node_impurity
+            if (sum_impurity < min_impurity):
+                min_impurity = sum_impurity
+                feature_index = feature
+                threshold_split = threshold
+                left_indices = tmp_left_indices
+                right_indices = tmp_right_indices
+    return feature_index, threshold_split, left_indices, right_indices
 
 class Decision_Tree:
     def __init__(self, min_sample_split, max_depth, min_impurity_decrease, feature_subset = None):
+        """
+            feature_subset: [0,1,2,3,...]
+        """
         self.feature_subset = feature_subset
         self.min_sample_split = min_sample_split
         self.max_depth = max_depth
