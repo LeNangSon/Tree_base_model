@@ -42,16 +42,18 @@ class Decision_Tree:
             labels = y[node.indices]
             if (depth > self.max_depth or num_samples < self.min_sample_split or len(np.unique(labels)) == 1):
                 node.value = compute_value(y, node.indices)
+                node.indices = None 
                 return 
             node.feature_index, node.threshold, left_indices, right_indices = feature_index_split(X, y, self.feature_subset, node.indices)
             if left_indices is None or right_indices is None:
                 node.value = compute_value(y, node.indices)
+                node.indices = None 
                 return
             node.left = Tree_Node(left_indices)
             node.right = Tree_Node(right_indices)
             _grow_tree(node.left, depth + 1)
             _grow_tree(node.right, depth + 1)
-
+            node.indices = None 
         self.root = Tree_Node(list(range(X.shape[0])))
-        _grow_tree(self.root, 0)
+        _grow_tree(self.root, 0) 
         return self
