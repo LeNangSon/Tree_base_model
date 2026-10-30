@@ -17,16 +17,61 @@ def compute_value(y, indices):
     return label[np.argmax(counts)]
 
 def threshold_split(X, y, feature_index, indices):
-    """Return threshold (or label for classification prob)"""
+    best_gain = -1 
+    best_thresh = None 
+    best_left = None 
+    best_right = None 
+    current_entropy = compute_entropy(y , indices)
+    n = len(indices) 
+    #using feature_val as thresh to split 
+    feature_vals = X[indices, feature_index]
+    unique_thresholds = np.unique(feature_vals)
+
+    for thresh in unique_thresholds:
+        left_mask = feature_vals <= thresh
+        right_mask = ~left_mask #opposite
+
+        left_idx = [indices[i] for i in range(n) if left_mask[i]]
+        right_idx = [indices[i] for i in range(n) if right_mask[i]]
+    
+        if len(left_idx) == 0 or len(right_idx) == 0:
+            continue        
+        gain = current_entropy - (
+            (len(left_idx) / n) * compute_entropy(y, left_idx) +
+            (len(right_idx) / n) * compute_entropy(y, right_idx)
+        )
+
+        if gain > best_gain:
+            best_gain = gain
+            best_thresh = thresh
+            best_left = left_idx
+            best_right = right_idx
+
+    return best_thresh, best_gain, best_left, best_right
+
+
 
 def feature_index_split(X, y, feature_subset, indices):
     feature_index = None
     threshold = None
     left_indices = None
     right_indices = None
-
+    max_gain = -1
     """Return feature index, threshold we choose to split data"""
-    ...
+    #avoid feature subnet is None , so loop is inf 
+    if feature_subset is None:
+        feature_subset = range(X.shape[1])
+
+    for feat_idx in feature_subset:
+        thresh, gain, left_idx, right_idx = threshold_split(X, y, feat_idx, indices)
+        
+        if gain is not None and gain > max_gain:
+            max_gain = gain
+            feature_index = feat_idx
+            threshold = thresh
+            left_indices = left_idx
+            right_indices = right_idx
+
     return feature_index, threshold, left_indices, right_indices
 
 class Decision_Tree:
@@ -57,3 +102,14 @@ class Decision_Tree:
         self.root = Tree_Node(list(range(X.shape[0])))
         _grow_tree(self.root, 0) 
         return self
+
+    #add predict to test (gemini 3.8 flash)
+    def predict(self , X : np.ndarray):
+        return np.array([self._predict_row(row, self.root) for row in X])
+    def _predict_row(self, row, node):       
+        if node.value is not None:
+            return node.value
+            # Đi theo nhánh tương ứng
+        if row[node.feature_index] <= node.threshold:
+            return self._predict_row(row, node.left)
+        return self._predict_row(row, node.right)
